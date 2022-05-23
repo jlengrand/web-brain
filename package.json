@@ -18,6 +18,7 @@
     "start": "tsc && concurrently -k -r \"tsc --watch --preserveWatchOutput\" \"wds\""
   },
   "dependencies": {
+    "firebase": "^9.8.1",
     "lit": "^2.2.3"
   },
   "devDependencies": {
