@@ -15,7 +15,11 @@ import {
   onAuthStateChanged
 } from 'firebase/auth';
 
+import { getFirestore, collection, Firestore, onSnapshot, addDoc } from "firebase/firestore"; 
+
+
 import { FIREBASE_CONFIG } from './constants.js';
+import { IPerson } from './models/people.js';
 
 @customElement('web-brain')
 export class WebBrain extends LitElement {
@@ -23,24 +27,43 @@ export class WebBrain extends LitElement {
 
   @property({ type: String }) search = '';
 
+  @property({ type: Object }) newPerson: IPerson | null = null;
+
   @property({ type: Object }) user: User | null = null;
+
+  @property({type: Array}) persons : Array<IPerson> | null = null;
 
   public firebaseApp: FirebaseApp;
 
   private auth: Auth;
 
+  private firestore : Firestore;
+
   private provider: AuthProvider = new GoogleAuthProvider();
+
+  private peopleCollection;
+
 
   constructor() {
     super();
     this.firebaseApp = initializeApp(FIREBASE_CONFIG);
 
+    this.firestore = getFirestore();
     this.auth = getAuth();
+
+    this.peopleCollection = collection(this.firestore, "people");
 
     onAuthStateChanged(this.auth, (user) => {
       console.log(`onAuthStateChanged${user}`);
       if (user) { this.user = user;} 
     });
+    
+    const unsub = onSnapshot(this.peopleCollection, (querySnapshot) => {
+      // const cities = [];
+      querySnapshot.forEach((doc) => {
+          console.log(doc.data());
+      });
+  });
   }
 
   static styles = css``;
@@ -68,6 +91,19 @@ export class WebBrain extends LitElement {
     }
   }
 
+  async savePerson() {
+    console.log(`saving ${JSON.stringify(this.newPerson)}`);
+
+    try {
+      const docRef = await addDoc(this.peopleCollection, this.newPerson);
+      console.log("Document written with ID: ", docRef.id);
+    } catch (e) {
+      console.error("Error adding document: ", e);
+    }
+
+    this.newPerson = null;
+  }
+
   render() {
     return html`
       <h1>${this.title}</h1>
@@ -78,12 +114,10 @@ export class WebBrain extends LitElement {
           ? html`
               <p>Logged in as ${this.user.email}</p>
               <button
-                label="Logout"
                 @click="${this.logout}"
               >Logout</button>
             `
           : html`<button
-              label="LogIn with Google"
               @click="${this.logIn}"
             >LogIn with Google!</button>`}
       </div>
@@ -98,6 +132,21 @@ export class WebBrain extends LitElement {
           }}"
         />
       </div>
+
+      <!-- Adding people -->
+            <div>
+        Adding a new person
+        <input
+          type="text"
+          @input="${(e: any) => {
+            const p : IPerson = { name: e.target.value }
+            this.newPerson = p;
+          }}"
+        />
+        <button
+              @click="${this.savePerson}"
+            >Save new person!</button>
+      </div>    
 
       <!-- Content -->
       <main>The content will come here</main>
