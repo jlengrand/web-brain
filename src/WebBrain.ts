@@ -31,7 +31,7 @@ export class WebBrain extends LitElement {
 
   @property({ type: Object }) user: User | null = null;
 
-  @property({type: Object}) persons : Map<string, IPerson> = new Map();
+  @property({type: Array}) persons : Array<[string, IPerson]> = [];
 
   public firebaseApp: FirebaseApp;
 
@@ -58,12 +58,11 @@ export class WebBrain extends LitElement {
     });
     
     const unsub = onSnapshot(this.peopleCollection, (querySnapshot) => {
-      // const cities = [];
+      const tempPersons : Array<[string, IPerson]> = []
       querySnapshot.forEach((doc) => {
-        this.persons.set(doc.id, doc.data() as IPerson);
+        tempPersons.push([doc.id, doc.data() as IPerson]);
       });
-      this.requestUpdate();
-      console.log('plop');
+      this.persons = tempPersons
   });
   }
 
@@ -155,8 +154,8 @@ export class WebBrain extends LitElement {
         <h2>The content will come here</h2>
 
         <ul>
-        ${this.persons.forEach((person: IPerson, id: string) =>
-          html`<li>${id} aaa</li>`
+        ${this.persons.map((person) =>
+          html`<li>${person[0]} - ${person[1].name}</li>`
         )}
         </ul>
 
