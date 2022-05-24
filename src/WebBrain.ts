@@ -4,12 +4,15 @@ import { customElement, property } from 'lit/decorators.js';
 import { FirebaseApp, initializeApp } from 'firebase/app';
 import {
   getAuth,
+  setPersistence,
   signInWithPopup,
   signOut,
   GoogleAuthProvider,
   Auth,
   AuthProvider,
   User,
+  browserLocalPersistence,
+  onAuthStateChanged
 } from 'firebase/auth';
 
 import { FIREBASE_CONFIG } from './constants.js';
@@ -33,14 +36,19 @@ export class WebBrain extends LitElement {
     this.firebaseApp = initializeApp(FIREBASE_CONFIG);
 
     this.auth = getAuth();
+
+    onAuthStateChanged(this.auth, (user) => {
+      console.log(`onAuthStateChanged${user}`);
+      if (user) { this.user = user;} 
+    });
   }
 
   static styles = css``;
 
   async logIn() {
     console.log('Logging in');
-
     try {
+      await setPersistence(this.auth,browserLocalPersistence);
       const result = await signInWithPopup(this.auth, this.provider);
       console.log('logged in');
       this.user = result.user;
