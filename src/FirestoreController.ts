@@ -1,18 +1,17 @@
+import { Firestore } from 'firebase/firestore';
 import {ReactiveController, ReactiveControllerHost} from 'lit';
 
-import { FirebaseApp, initializeApp } from "firebase/app";
-import {FIREBASE_CONFIG} from "./constants.js";
 
-export class FirebaseController implements ReactiveController {
+export class FirestoreController implements ReactiveController {
     host: ReactiveControllerHost;
-  
-    value = [];
-    
-    private firebaseApp: FirebaseApp;
 
-    constructor(host: ReactiveControllerHost) {
-      (this.host = host).addController(this);
-      this.firebaseApp = initializeApp(FIREBASE_CONFIG);
+    firestore: Firestore;
+
+    constructor(host: ReactiveControllerHost, firestore : Firestore) {
+        this.host = host;
+        host.addController(this);
+
+        this.firestore = firestore;
     }
   
     hostConnected() {

@@ -31,7 +31,7 @@ export class WebBrain extends LitElement {
 
   @property({ type: Object }) user: User | null = null;
 
-  @property({type: Array}) persons : Array<IPerson> | null = null;
+  @property({type: Object}) persons : Map<string, IPerson> = new Map();
 
   public firebaseApp: FirebaseApp;
 
@@ -42,7 +42,6 @@ export class WebBrain extends LitElement {
   private provider: AuthProvider = new GoogleAuthProvider();
 
   private peopleCollection;
-
 
   constructor() {
     super();
@@ -61,8 +60,10 @@ export class WebBrain extends LitElement {
     const unsub = onSnapshot(this.peopleCollection, (querySnapshot) => {
       // const cities = [];
       querySnapshot.forEach((doc) => {
-          console.log(doc.data());
+        this.persons.set(doc.id, doc.data() as IPerson);
       });
+      this.requestUpdate();
+      console.log('plop');
   });
   }
 
@@ -96,6 +97,7 @@ export class WebBrain extends LitElement {
 
     try {
       const docRef = await addDoc(this.peopleCollection, this.newPerson);
+      this.newPerson = null;
       console.log("Document written with ID: ", docRef.id);
     } catch (e) {
       console.error("Error adding document: ", e);
@@ -139,7 +141,7 @@ export class WebBrain extends LitElement {
         <input
           type="text"
           @input="${(e: any) => {
-            const p : IPerson = { name: e.target.value }
+            const p : IPerson = { name: e.target.value, owner: this.user!.uid }
             this.newPerson = p;
           }}"
         />
@@ -149,7 +151,16 @@ export class WebBrain extends LitElement {
       </div>    
 
       <!-- Content -->
-      <main>The content will come here</main>
+      <main>
+        <h2>The content will come here</h2>
+
+        <ul>
+        ${this.persons.forEach((person: IPerson, id: string) =>
+          html`<li>${id} aaa</li>`
+        )}
+        </ul>
+
+      </main>
 
       <footer>Web brain, because you forget everything</footer>
     `;
