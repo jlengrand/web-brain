@@ -154,7 +154,7 @@ export class WebBrain extends LitElement {
         <h2>The content will come here</h2>
 
         <ul>
-        ${this.persons.map((person) =>
+        ${this.persons.filter( p => p[1].name.includes(this.search) ).map((person) =>
           html`<li>${person[0]} - ${person[1].name}</li>`
         )}
         </ul>
