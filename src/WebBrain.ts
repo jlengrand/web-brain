@@ -15,11 +15,12 @@ import {
   onAuthStateChanged
 } from 'firebase/auth';
 
-import { getFirestore, collection, Firestore, onSnapshot, addDoc } from "firebase/firestore"; 
+import { getFirestore, collection, Firestore, onSnapshot, addDoc, CollectionReference } from "firebase/firestore"; 
 
 
 import { FIREBASE_CONFIG } from './constants.js';
-import { IPerson } from './models/people.js';
+import { IEntry, IPerson } from './models/people.js';
+import "./PersonView.js"
 
 @customElement('web-brain')
 export class WebBrain extends LitElement {
@@ -41,7 +42,7 @@ export class WebBrain extends LitElement {
 
   private provider: AuthProvider = new GoogleAuthProvider();
 
-  private peopleCollection;
+  private peopleCollection : CollectionReference | null = null;
 
   constructor() {
     super();
@@ -49,21 +50,23 @@ export class WebBrain extends LitElement {
 
     this.firestore = getFirestore();
     this.auth = getAuth();
-
-    this.peopleCollection = collection(this.firestore, "people");
-
+    
     onAuthStateChanged(this.auth, (user) => {
-      console.log(`onAuthStateChanged${user}`);
-      if (user) { this.user = user;} 
+      console.log(`onAuthStateChanged ${user}`);
+      if (user) { 
+        this.user = user;
+        this.peopleCollection = collection(this.firestore, `/users/${this.user.uid}/people`);
+
+        const unsub = onSnapshot(this.peopleCollection, (querySnapshot) => {
+          const tempPersons : Array<[string, IPerson]> = []
+          querySnapshot.forEach((doc) => {
+            tempPersons.push([doc.id, doc.data() as IPerson]);
+          });
+          this.persons = tempPersons
+        });
+      } 
     });
     
-    const unsub = onSnapshot(this.peopleCollection, (querySnapshot) => {
-      const tempPersons : Array<[string, IPerson]> = []
-      querySnapshot.forEach((doc) => {
-        tempPersons.push([doc.id, doc.data() as IPerson]);
-      });
-      this.persons = tempPersons
-  });
   }
 
   static styles = css``;
@@ -94,15 +97,18 @@ export class WebBrain extends LitElement {
   async savePerson() {
     console.log(`saving ${JSON.stringify(this.newPerson)}`);
 
-    try {
-      const docRef = await addDoc(this.peopleCollection, this.newPerson);
+    if(this.peopleCollection){
+      try {
+        const docRef = await addDoc(this.peopleCollection, this.newPerson);
+        this.newPerson = null;
+        console.log("Document written with ID: ", docRef.id);
+      } catch (e) {
+        console.error("Error adding document: ", e);
+      }
+  
       this.newPerson = null;
-      console.log("Document written with ID: ", docRef.id);
-    } catch (e) {
-      console.error("Error adding document: ", e);
     }
 
-    this.newPerson = null;
   }
 
   render() {
@@ -140,7 +146,8 @@ export class WebBrain extends LitElement {
         <input
           type="text"
           @input="${(e: any) => {
-            const p : IPerson = { name: e.target.value, owner: this.user!.uid }
+            const entry : IEntry = { content : "Met at the 6th floor at SC"};
+            const p : IPerson = { name: e.target.value, entries: [entry] }
             this.newPerson = p;
           }}"
         />
@@ -155,7 +162,8 @@ export class WebBrain extends LitElement {
 
         <ul>
         ${this.persons.filter( p => p[1].name.includes(this.search) ).map((person) =>
-          html`<li>${person[0]} - ${person[1].name}</li>`
+          // html`<li>${person[0]} - ${person[1].name}</li>`
+          html`<person-view personId="${person[0]}" .person="${person[1]}"></person-view>`
         )}
         </ul>
 
