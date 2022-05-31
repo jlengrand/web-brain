@@ -15,12 +15,12 @@ import {
   onAuthStateChanged
 } from 'firebase/auth';
 
-import { getFirestore, collection, Firestore, onSnapshot, addDoc, CollectionReference } from "firebase/firestore"; 
+import { getFirestore, collection, Firestore, onSnapshot, addDoc, CollectionReference, Timestamp } from "firebase/firestore"; 
 
 
 import { FIREBASE_CONFIG } from './constants.js';
 import { IEntry, IPerson } from './models/people.js';
-import "./PersonView.js"
+import "./PersonsView.js"
 
 @customElement('web-brain')
 export class WebBrain extends LitElement {
@@ -52,7 +52,6 @@ export class WebBrain extends LitElement {
     this.auth = getAuth();
     
     onAuthStateChanged(this.auth, (user) => {
-      console.log(`onAuthStateChanged ${user}`);
       if (user) { 
         this.user = user;
         this.peopleCollection = collection(this.firestore, `/users/${this.user.uid}/people`);
@@ -72,7 +71,6 @@ export class WebBrain extends LitElement {
   static styles = css``;
 
   async logIn() {
-    console.log('Logging in');
     try {
       await setPersistence(this.auth,browserLocalPersistence);
       const result = await signInWithPopup(this.auth, this.provider);
@@ -84,19 +82,18 @@ export class WebBrain extends LitElement {
   }
 
   async logout() {
-    console.log('Logging out');
     try {
       await signOut(this.auth);
       console.log('logged out');
       this.user = null;
+      this.persons = [];
+      this.search = "";
     } catch (error) {
       console.log('Error while logging out', error);
     }
   }
 
   async savePerson() {
-    console.log(`saving ${JSON.stringify(this.newPerson)}`);
-
     if(this.peopleCollection){
       try {
         const docRef = await addDoc(this.peopleCollection, this.newPerson);
@@ -145,9 +142,10 @@ export class WebBrain extends LitElement {
         Adding a new person
         <input
           type="text"
+          .value = "${this.newPerson ? this.newPerson.name : ''}"
           @input="${(e: any) => {
-            const entry : IEntry = { content : "Met at the 6th floor at SC"};
-            const p : IPerson = { name: e.target.value, entries: [entry] }
+            // const entry : IEntry = { content : "Met at the 6th floor at SC", createdAt : new Date(), updatedAt : new Date() };
+            const p : IPerson = { name: e.target.value, entries: [], createdAt : Timestamp.fromDate(new Date()), updatedAt : Timestamp.fromDate(new Date())};
             this.newPerson = p;
           }}"
         />
@@ -159,14 +157,7 @@ export class WebBrain extends LitElement {
       <!-- Content -->
       <main>
         <h2>The content will come here</h2>
-
-        <ul>
-        ${this.persons.filter( p => p[1].name.includes(this.search) ).map((person) =>
-          // html`<li>${person[0]} - ${person[1].name}</li>`
-          html`<person-view personId="${person[0]}" .person="${person[1]}"></person-view>`
-        )}
-        </ul>
-
+        <persons-view .persons="${this.persons}" .search="${this.search}"></persons-view>
       </main>
 
       <footer>Web brain, because you forget everything</footer>
